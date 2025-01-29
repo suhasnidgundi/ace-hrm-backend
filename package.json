@@ -3,11 +3,10 @@
   "version": "1.0.0",
   "author": "suhasnidgundi",
   "license": "ISC",
-  "type": "module",
   "description": "Human Resource Management System for ACE Hospital",
   "main": "dist/index.js",
   "scripts": {
-    "start": "node dist/index.ts",
+    "start": "node dist/index.js",
     "dev": "nodemon",
     "build": "tsc",
     "lint": "eslint src/**/*.{js,ts}",
@@ -19,7 +18,8 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.9.5"
+    "mongoose": "^8.9.5",
+    "tslib": "^2.8.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

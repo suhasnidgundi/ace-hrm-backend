@@ -5,9 +5,9 @@ import { User } from '../models/User.js';
 export const login = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
-    
+
     const user = await User.findOne({ email });
-    
+
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }

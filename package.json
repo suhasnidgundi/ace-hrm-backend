@@ -7,7 +7,7 @@
   "description": "Human Resource Management System for ACE Hospital",
   "main": "dist/index.js",
   "scripts": {
-    "start": "node dist/index.js",
+    "start": "node dist/index.ts",
     "dev": "nodemon",
     "build": "tsc",
     "lint": "eslint src/**/*.{js,ts}",

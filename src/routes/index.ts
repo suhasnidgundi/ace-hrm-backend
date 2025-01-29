@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import { auth } from '../middleware/auth';
 import { login, register } from '../controllers/auth.controller';
 import { User } from '../models/User';
-// import { timeOffController } from '../controllers/timeoff.controller';
+import { timeOffController } from '../controllers/timeoff.controller';
 
 // Extend the Express Request type to include the user property
 interface AuthRequest extends Request {
@@ -19,9 +19,10 @@ router.post('/register', register);
 router.use(auth);
 
 // Time off routes
-// router.get('/time-offs', timeOffController.getTimeOffs);
-// router.post('/time-offs', timeOffController.createTimeOff);
-// router.patch('/time-offs/:id/review', timeOffController.reviewTimeOff);
+router.get('/time-offs', timeOffController.getTimeOffs);
+router.post('/time-offs', timeOffController.createTimeOff);
+router.patch('/time-offs/:id/review', timeOffController.reviewTimeOff);
+router.get('/time-off-stats', timeOffController.getTimeOffStats);
 
 // User routes
 router.get('/me', (req: AuthRequest, res: Response) => {

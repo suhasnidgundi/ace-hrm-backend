@@ -16,7 +16,7 @@ console.log(`Port configured: ${port}`);
 
 app.use(cors());
 app.use(express.json());
-app.use('/api', routes);
+app.use('/', routes);
 
 console.log('Attempting MongoDB connection...');
 

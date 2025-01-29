@@ -1,52 +1,46 @@
-// import express from 'express';
-// import { auth } from './middleware/auth';
-// import { login } from '../controllers/auth.controller';
+import express, { Request, Response } from 'express';
+import { auth } from '../middleware/auth';
+import { login, register } from '../controllers/auth.controller';
+import { User } from '../models/User';
 // import { timeOffController } from '../controllers/timeoff.controller';
 
-// const router = express.Router();
+// Extend the Express Request type to include the user property
+interface AuthRequest extends Request {
+  user?: any; // You can replace 'any' with your User interface type
+}
 
-// // Auth routes
-// router.post('/login', login);
+const router = express.Router();
 
-// // Protected routes
-// router.use(auth);
+// Auth routes
+router.post('/login', login);
+router.post('/register', register);
 
-// // Time off routes
+// Protected routes
+router.use(auth);
+
+// Time off routes
 // router.get('/time-offs', timeOffController.getTimeOffs);
 // router.post('/time-offs', timeOffController.createTimeOff);
 // router.patch('/time-offs/:id/review', timeOffController.reviewTimeOff);
 
-// // User routes
-// router.get('/me', (req, res) => res.json(req.user));
-// router.get('/employees', async (req, res) => {
-//     const { role, limit = 10, page = 1 } = req.query;
-//     const query = role ? { role } : {};
-
-//     try {
-//         const users = await User.find(query)
-//             .limit(Number(limit))
-//             .skip((Number(page) - 1) * Number(limit));
-
-//         res.json(users);
-//     } catch (error) {
-//         res.status(500).json({ error: 'Failed to fetch employees' });
-//     }
-// });
-
-// export default router;
-
-import { Request, Response } from 'express';
-import express from 'express';
-
-const router = express.Router();
-
-router.get('/', (req: Request, res: Response) => {
-    res.send('Hello World!');
+// User routes
+router.get('/me', (req: AuthRequest, res: Response) => {
+  res.json(req.user);
 });
 
-// Health check route
-router.get('/health', (req: Request, res: Response) => {
-    res.json({ status: 'ok' });
+router.get('/employees', async (req: Request, res: Response) => {
+    const { role, limit = 10, page = 1 } = req.query;
+    const query = role ? { role } : {};
+
+    try {
+        const users = await User.find(query)
+            .limit(Number(limit))
+            .skip((Number(page) - 1) * Number(limit));
+
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch employees' });
+    }
 });
 
 export default router;

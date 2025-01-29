@@ -5,10 +5,13 @@
   "license": "ISC",
   "type": "module",
   "description": "Human Resource Management System for ACE Hospital",
-  "main": "app/index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "start": "node dist/index.js",
+    "dev": "cross-env NODE_OPTIONS=\"--trace-warnings --loader ts-node/esm\" nodemon src/index.ts",
+    "build": "tsc",
+    "lint": "eslint src/**/*.{js,ts}",
+    "test": "jest"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -17,5 +20,16 @@
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.5"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^20.0.0",
+    "cross-env": "^7.0.3",
+    "nodemon": "^3.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
   }
 }

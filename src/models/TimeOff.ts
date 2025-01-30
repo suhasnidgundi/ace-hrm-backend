@@ -1,19 +1,18 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import mongoose, { Document, Schema, Types } from 'mongoose';
 import { IUser } from './User';
 
 // Define interface for TimeOff document
 export interface ITimeOff extends Document {
-  employeeId: mongoose.Types.ObjectId | IUser;
+  _id: Types.ObjectId;
+  employeeId: Types.ObjectId;
   timeOffType: 'Annual' | 'Sick' | 'Casual';
   status: 'Pending' | 'Approved' | 'Rejected';
   startsAt: Date;
   endsAt: Date;
   reason?: string;
-  reviewedBy?: mongoose.Types.ObjectId | IUser;
+  reviewedBy?: Types.ObjectId;
   reviewedAt?: Date;
   reviewNote?: string;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 // Create the TimeOff schema

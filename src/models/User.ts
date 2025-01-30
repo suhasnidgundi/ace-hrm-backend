@@ -24,6 +24,7 @@ export interface IUser extends Document {
   password: string;
   createdAt: Date;
   updatedAt: Date;
+  dateOfJoining?: Date;
 }
 
 const UserSchema = new Schema<IUser>(

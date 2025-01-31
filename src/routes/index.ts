@@ -1,6 +1,6 @@
-import { Router, Response } from 'express';
+import { Router } from 'express';
 import { auth } from '../middleware/auth';
-import { AuthenticatedRequest } from '../types/request.types';
+import { employeeController } from '../controllers/employee.controller';
 
 import authRoutes from './auth.routes';
 import employeeRoutes from './employee.routes';
@@ -15,15 +15,13 @@ router.use('/auth', authRoutes);
 // Protected routes
 router.use(auth);
 
+// Add /me route at root level
+router.get('/me', employeeController.getMe);
+
 // Protected route groups
 router.use('/employees', employeeRoutes);
 router.use('/teams', teamRoutes);
 router.use('/time-offs', timeOffRoutes);
-
-// Profile route
-router.get('/me', (req: AuthenticatedRequest, res: Response) => {
-  res.json(req.user);
-});
 
 export default router;
 export const apiRouter = router;

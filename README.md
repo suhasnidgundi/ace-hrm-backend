@@ -521,3 +521,182 @@ Removes a member from a team.
   "error": "Error message describing the server error"
 }
 ```
+
+# Employee API Documentation
+
+## Base URL
+```
+/api/v1/employees
+```
+
+## Authentication
+All endpoints require a valid JWT token in the Authorization header:
+```
+Authorization: Bearer <your_jwt_token>
+```
+
+## Endpoints
+
+### Get All Employees
+Retrieves a paginated list of employees with optional filtering.
+
+**GET** `/`
+
+#### Query Parameters
+- `role` (optional): Filter by employee role
+- `limit` (optional): Number of records per page (default: 10)
+- `page` (optional): Page number (default: 1)
+- `s` (optional): Search query in encoded JSON format
+
+#### Example Search Query
+```
+/api/v1/employees?s={"$and":[{"role":{"$eq":"Manager"}}]}
+```
+
+#### Response
+```typescript
+{
+    data: {
+        id: number;
+        createdAt: Date;
+        updatedAt: Date;
+        teamId?: number;
+        avatarUrl?: string;
+        firstName: string;
+        lastName: string;
+        jobTitle: string;
+        role: string;
+        email: string;
+        address: string;
+        phone: string;
+        birthdate?: Date;
+        links: string[];
+        customFields: Array<{ key: string; value: string }>;
+        availableAnnualLeaveDays: number;
+    }[];
+    total: number;
+    page: number;
+    totalPages: number;
+}
+```
+
+#### Status Codes
+- `200`: Success
+- `500`: Server error
+
+### Get Current Employee Profile
+Retrieves the profile of the currently authenticated employee.
+
+**GET** `/me`
+
+#### Response
+```typescript
+{
+    id: number;
+    createdAt: Date;
+    updatedAt: Date;
+    teamId?: number;
+    avatarUrl?: string;
+    firstName: string;
+    lastName: string;
+    jobTitle: string;
+    role: string;
+    email: string;
+    address: string;
+    phone: string;
+    birthdate?: Date;
+    links: string[];
+    customFields: Array<{ key: string; value: string }>;
+    availableAnnualLeaveDays: number;
+}
+```
+
+#### Status Codes
+- `200`: Success
+- `404`: Profile not found
+- `500`: Server error
+
+## Employee Properties
+
+### Employee Object
+```typescript
+{
+    userId: ObjectId;           // Reference to UserProfile
+    employeeNumber: string;     // Unique employee identifier
+    jobTitle: string;          // Employee's job title
+    department: string;        // Department name
+    role: "Manager" | "Employee"; // Employee role
+    teamId?: ObjectId;         // Reference to Team
+    reportsTo?: ObjectId;      // Reference to managing Employee
+    dateOfJoining: Date;       // Employment start date
+    employmentStatus: "Active" | "OnLeave" | "Terminated"; // Current status
+    workLocation: string;      // Work location
+    contractType: "FullTime" | "PartTime" | "Contract"; // Employment type
+    leaveBalance: {
+        annual: number;        // Annual leave days
+        sick: number;         // Sick leave days
+        casual: number;       // Casual leave days
+    };
+    compensation: {
+        salary: number;       // Salary amount
+        currency: string;     // Currency code
+        effectiveDate: Date;  // Last salary update date
+    };
+    documents?: Array<{       // Employee documents
+        type: string;
+        url: string;
+        uploadedAt: Date;
+    }>;
+    customFields?: Array<{    // Custom field values
+        key: string;
+        value: string;
+    }>;
+}
+```
+
+## Error Responses
+
+### Generic Error Response
+```typescript
+{
+    error: string;            // Error message
+}
+```
+
+## Notes
+1. All dates are returned in ISO 8601 format
+2. `teamId` is converted from MongoDB ObjectId to a numeric ID in responses
+3. Employee IDs in responses are derived from the last 8 characters of MongoDB ObjectId
+4. The API implements soft deletion - deleted records are marked as inactive rather than removed
+5. Custom fields support dynamic attributes that may vary by organization
+6. All monetary values in compensation are stored and returned as numbers without currency formatting
+
+## Rate Limiting
+- Default rate limit: 100 requests per minute per IP
+- Bulk operations: 10 requests per minute per IP
+
+## Pagination
+- Default page size: 10 records
+- Maximum page size: 100 records
+- Page numbers start at 1
+
+## Searching and Filtering
+The API supports complex queries through the `s` parameter using MongoDB query syntax. Example search patterns:
+
+```javascript
+// Search by role
+s={"role":{"$eq":"Manager"}}
+
+// Multiple conditions
+s={"$and":[{"role":"Manager"},{"department":"IT"}]}
+
+// Date range
+s={"dateOfJoining":{"$gte":"2023-01-01","$lte":"2023-12-31"}}
+```
+
+## Best Practices
+1. Always implement pagination for large data sets
+2. Use appropriate HTTP status codes
+3. Include error handling for all requests
+4. Cache frequently accessed data
+5. Use compression for large responses

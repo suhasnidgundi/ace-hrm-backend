@@ -33,6 +33,9 @@ export interface IEmployee extends Document {
         value: string;
     }>;
     availableAnnualLeaveDays?: number;
+    // Add these timestamp fields
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 const EmployeeSchema = new Schema<IEmployee>(

@@ -161,45 +161,6 @@ Authorization: Bearer <your_jwt_token>
 
 - **Success Response**: Updated employee object
 
-#### 4. Get Team Hierarchy
-
-- **URL**: `/team-hierarchy`
-- **Method**: `GET`
-- **Auth Required**: Yes (Manager only)
-- **Success Response**:
-
-```json
-[
-  {
-    "userId": {
-      "firstName": "Team",
-      "lastName": "Member",
-      "email": "team@example.com"
-    },
-    "employeeNumber": "EMP124"
-    // ... other employee fields
-  }
-]
-```
-
-#### 5. Update Leave Balance
-
-- **URL**: `/employees/:id/leave-balance`
-- **Method**: `PATCH`
-- **Auth Required**: Yes (Manager only)
-- **URL Parameters**: `id` - Employee ID
-- **Body**:
-
-```json
-{
-  "leaveType": "annual",
-  "amount": 5,
-  "operation": "add" // or "subtract"
-}
-```
-
-- **Success Response**: Updated employee object
-
 ### Time Off Management
 
 #### 1. Create Time Off Request

@@ -89,77 +89,140 @@ Authorization: Bearer <your_jwt_token>
 }
 ```
 
-### Employee Management
+# Employee Management API Documentation
 
-#### 1. Get All Employees
+## Base URL
+`/api/employees`
 
-- **URL**: `/employees`
-- **Method**: `GET`
-- **Auth Required**: Yes
-- **Query Parameters**:
-  - `department`: Filter by department
-  - `role`: Filter by role
-  - `status`: Filter by employment status
-  - `page`: Page number (default: 1)
-  - `limit`: Items per page (default: 10)
-  - `search`: Search by name or email
-- **Success Response**:
+## Authentication
+All endpoints require authentication via JWT token in the Authorization header:
+```
+Authorization: Bearer <token>
+```
 
-```json
-{
-  "data": [
+## Endpoints
+
+### 1. Get All Employees
+- **URL:** `/`
+- **Method:** `GET`
+- **Auth Required:** Yes
+- **Query Parameters:**
+  - `role` (optional): Filter by role
+  - `limit` (optional): Number of results per page (default: 10)
+  - `page` (optional): Page number (default: 1)
+  - `s` (optional): Search query in JSON format
+- **Success Response:**
+  - Status Code: 200
+  - Content: 
+    ```json
     {
-      "userId": {
-        "firstName": "John",
-        "lastName": "Doe",
-        "email": "john@example.com"
-      },
-      "employeeNumber": "EMP123",
-      "jobTitle": "Software Engineer",
-      "department": "Engineering"
-      // ... other employee fields
+      "data": [Employee],
+      "total": number,
+      "page": number,
+      "totalPages": number
     }
-  ],
-  "total": 100,
-  "page": 1,
-  "totalPages": 10
+    ```
+
+### 2. Get Employee by ID
+- **URL:** `/:id`
+- **Method:** `GET`
+- **Auth Required:** Yes
+- **URL Parameters:** `id` - Employee ID
+- **Success Response:**
+  - Status Code: 200
+  - Content: Employee object
+
+### 3. Create Employee
+- **URL:** `/`
+- **Method:** `POST`
+- **Auth Required:** Yes (Manager only)
+- **Body:**
+  ```json
+  {
+    "firstName": "string",
+    "lastName": "string",
+    "email": "string",
+    "jobTitle": "string",
+    "department": "string",
+    "role": "Manager" | "Employee",
+    "dateOfJoining": "Date",
+    "employmentStatus": "Active" | "OnLeave" | "Terminated",
+    "workLocation": "string",
+    "contractType": "FullTime" | "PartTime" | "Contract",
+    "salary": "number (optional)",
+    "reportsTo": "string (optional)",
+    "teamId": "string (optional)"
+  }
+  ```
+- **Success Response:**
+  - Status Code: 201
+  - Content: Created employee object
+
+### 4. Update Employee
+- **URL:** `/:id`
+- **Method:** `PUT`
+- **Auth Required:** Yes
+- **URL Parameters:** `id` - Employee ID
+- **Body:** Any employee fields to update
+- **Success Response:**
+  - Status Code: 200
+  - Content: Updated employee object
+
+### 5. Update Leave Balance
+- **URL:** `/:id/leave-balance`
+- **Method:** `PATCH`
+- **Auth Required:** Yes (Manager only)
+- **URL Parameters:** `id` - Employee ID
+- **Body:**
+  ```json
+  {
+    "leaveType": "annual" | "sick" | "casual",
+    "amount": "number",
+    "operation": "add" | "subtract"
+  }
+  ```
+- **Success Response:**
+  - Status Code: 200
+  - Content: Updated employee object
+
+### 6. Delete Employee
+- **URL:** `/:id`
+- **Method:** `DELETE`
+- **Auth Required:** Yes (Manager only)
+- **URL Parameters:** `id` - Employee ID
+- **Success Response:**
+  - Status Code: 204
+  - Content: No content
+
+## Error Responses
+All endpoints may return these errors:
+- 400 Bad Request: Invalid input data
+- 401 Unauthorized: Missing or invalid authentication
+- 403 Forbidden: Insufficient permissions
+- 404 Not Found: Resource not found
+- 500 Internal Server Error: Server error
+
+## Response Object Structure
+```typescript
+interface EmployeeResponse {
+    id: number;
+    createdAt: Date;
+    updatedAt: Date;
+    teamId?: number;
+    avatarUrl?: string;
+    firstName: string;
+    lastName: string;
+    jobTitle: string;
+    role: string;
+    email: string;
+    address: string;
+    phone: string;
+    birthdate?: Date;
+    links: string[];
+    customFields: Array<{ key: string; value: string }>;
+    availableAnnualLeaveDays: number;
 }
 ```
-
-#### 2. Get Single Employee
-
-- **URL**: `/employees/:id`
-- **Method**: `GET`
-- **Auth Required**: Yes
-- **URL Parameters**: `id` - Employee ID
-- **Success Response**:
-
-```json
-{
-  "userId": {
-    // User profile data
-  },
-  "employeeNumber": "EMP123"
-  // ... other employee fields
-}
-```
-
-#### 3. Update Employee
-
-- **URL**: `/employees/:id`
-- **Method**: `PATCH`
-- **Auth Required**: Yes (Must be Manager or the employee themselves)
-- **URL Parameters**: `id` - Employee ID
-- **Body**: Any employee fields to update
-
-```json
-{
-  "jobTitle": "Senior Software Engineer",
-  "department": "Engineering"
-}
-```
-
-- **Success Response**: Updated employee object
 
 ### Time Off Management
 

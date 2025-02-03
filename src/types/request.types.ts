@@ -12,6 +12,26 @@ export interface AuthenticatedRequest extends Request {
     };
 }
 
+export interface TimeOffQueryParams {
+    s?: string; // JSON string of filters
+    limit?: number;
+    page?: number;
+    offset?: number;
+    sort?: string[];
+}
+
+export interface TimeOffFilter {
+    $and?: Array<{
+        [key: string]: {
+            [operator: string]: any
+        }
+    }>;
+}
+
+export interface TimeOffSort {
+    field: string;
+    direction: 'ASC' | 'DESC';
+}
 
 export interface TimeOffRequest {
 

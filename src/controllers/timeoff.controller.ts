@@ -1,97 +1,92 @@
-import { Request, Response } from 'express';
-import { TimeOff, ITimeOff } from '../models/TimeOff';
+import { Request, Response, NextFunction } from 'express';
 import { Types } from 'mongoose';
+import { TimeOffService } from '../services/timeoff.service';
+import { AuthenticatedRequest } from '../types/request.types';
+import { AppError } from '../utils/errors';
+import { timeOffQuerySchema } from '../utils/validators';
 
 export const timeOffController = {
-    createTimeOff: async (req: Request, res: Response) => {
+    async getTimeOffs(req: Request, res: Response, next: NextFunction) {
         try {
-            const { timeOffType, startsAt, endsAt, reason } = req.body;
-
-            // Safely access employee._id with type checking
-            const employeeId = req.user?.employee._id;
-            if (!employeeId) {
-                return res.status(400).json({ error: 'Employee ID not found' });
-            }
-
-            const timeOff = await TimeOff.create({
-                employeeId: employeeId,
-                timeOffType,
-                startsAt: new Date(startsAt),
-                endsAt: new Date(endsAt),
-                reason,
-                status: 'Pending'
+            const { error, value } = timeOffQuerySchema.validate(req.query, {
+                abortEarly: false,
+                convert: true,
+                allowUnknown: true  // Allow other query params
             });
-
-            return res.status(201).json(timeOff);
+    
+            if (error) {
+                const errorMessage = error.details.map(d => d.message).join('; ');
+                throw new AppError(errorMessage, 400);
+            }
+    
+            const result = await TimeOffService.getTimeOffs({
+                s: value.s,
+                limit: value.limit,
+                page: value.page,
+                offset: value.offset,
+                sort: Array.isArray(value.sort) ? value.sort : 
+                    value.sort ? [value.sort] : undefined
+            });
+    
+            res.json(result);
         } catch (error) {
-            console.error('Error creating time off:', error);
-            return res.status(500).json({ error: 'Failed to create time off request' });
+            next(error);
         }
     },
 
-    reviewTimeOff: async (req: Request, res: Response) => {
+    async createTimeOff(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+        try {
+            // Extract employeeId from the authenticated user
+            const employeeId = req.user?.employee._id;
+            if (!employeeId) {
+                throw new AppError('Employee ID not found in token', 401);
+            }
+
+            // Create the time-off request
+            const timeOff = await TimeOffService.createTimeOff({
+                ...req.body,
+                employeeId // Add employeeId from the token
+            });
+
+            res.status(201).json(timeOff);
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    async reviewTimeOff(req: AuthenticatedRequest, res: Response, next: NextFunction) {
         try {
             const { id } = req.params;
             const { status, reviewNote } = req.body;
-            const reviewerId = req.user?.employee._id;
-
-            if (!reviewerId) {
-                return res.status(400).json({ error: 'Reviewer ID not found' });
+            
+            if (!req.user?.employee._id) {
+                throw new AppError('Unauthorized', 401);
             }
 
-            if (!Types.ObjectId.isValid(id)) {
-                return res.status(400).json({ error: 'Invalid ID format' });
-            }
-
-            const timeOff = await TimeOff.findById(new Types.ObjectId(id));
-            if (!timeOff) {
-                return res.status(404).json({ error: 'Time off request not found' });
-            }
-
-            timeOff.status = status;
-            timeOff.reviewedBy = reviewerId;
-            timeOff.reviewedAt = new Date();
-            timeOff.reviewNote = reviewNote;
-
-            await timeOff.save();
-            return res.json(timeOff);
-        } catch (error) {
-            console.error('Error reviewing time off:', error);
-            return res.status(500).json({ error: 'Failed to review time off request' });
-        }
-    },
-
-    getTimeOffs: async (req: Request, res: Response) => {
-
-        try {
-
-            const timeOffs = await TimeOff.find();
-            res.json(timeOffs);
-
-        } catch (error) {
-            res.status(500).json({ message: 'Error fetching time offs' });
-        }
-
-    },
-
-    getTimeOffStats: async (req: Request, res: Response) => {
-
-        try {
-
-            const stats = await TimeOff.aggregate([
+            const timeOff = await TimeOffService.reviewTimeOff(
+                new Types.ObjectId(id),
+                req.user.employee._id,
                 {
-                    $group: {
-                        _id: '$status',
-                        count: { $sum: 1 }
-                    }
+                    status,
+                    reviewNote
                 }
-            ]);
+            );
 
-            res.json(stats);
-
+            res.json(timeOff);
         } catch (error) {
-            res.status(500).json({ message: 'Error fetching time off stats' });
+            next(error);
         }
+    },
 
+    async getTimeOffStats(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { employeeId } = req.query;
+            const stats = await TimeOffService.getTimeOffStats(
+                employeeId ? new Types.ObjectId(employeeId as string) : undefined
+            );
+            res.json(stats);
+        } catch (error) {
+            next(error);
+        }
     }
 };

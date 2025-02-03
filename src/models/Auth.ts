@@ -9,7 +9,6 @@ export interface IAuth extends Document {
     isActive: boolean;
     comparePassword(password: string): Promise<boolean>;
     lastLogout?: Date;
-
     createdAt: Date;
     updatedAt: Date;
 }

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { Employee } from '../models/Employee';
-import { UserProfile } from '../models/UserProfile';
-import mongoose from 'mongoose';
+import { Employee, IEmployee } from '../models/Employee';
+import { IUserProfile, UserProfile } from '../models/UserProfile';
+import mongoose, { Types } from 'mongoose';
 import { AppError } from '../utils/errors';
 
 interface EmployeeQuery {
@@ -29,6 +29,17 @@ interface EmployeeResponse {
     links: string[];
     customFields: Array<{ key: string; value: string }>;
     availableAnnualLeaveDays: number;
+}
+
+// Type for MongoDB validation error
+interface MongoError extends Error {
+    code?: number;
+    keyPattern?: Record<string, number>;
+}
+
+// Type for validation error
+interface ValidationError extends Error {
+    errors: Record<string, { message: string }>;
 }
 
 interface CreateEmployeeDTO {
@@ -180,6 +191,19 @@ export const employeeController = {
         try {
             const employeeData: CreateEmployeeDTO = req.body;
 
+            // Validate required fields
+            const requiredFields = [
+                'firstName', 'lastName', 'email', 'jobTitle', 
+                'department', 'role', 'dateOfJoining', 
+                'employmentStatus', 'workLocation', 'contractType'
+            ];
+
+            for (const field of requiredFields) {
+                if (!employeeData[field as keyof CreateEmployeeDTO]) {
+                    throw new AppError(`${field} is required`, 400);
+                }
+            }
+
             // Generate employee number
             const lastEmployee = await Employee.findOne().sort({ employeeNumber: -1 });
             const nextNumber = lastEmployee 
@@ -193,33 +217,123 @@ export const employeeController = {
                 lastName: employeeData.lastName,
                 email: employeeData.email
             });
-            await userProfile.save();
+            const savedUserProfile = await userProfile.save();
 
-            // Create employee record
-            const employee = new Employee({
-                userId: userProfile._id,
+            // Prepare employee data with proper ObjectId handling
+            const employeeDoc: Partial<IEmployee> = {
+                userId: savedUserProfile._id as Types.ObjectId,
                 employeeNumber,
                 jobTitle: employeeData.jobTitle,
                 department: employeeData.department,
                 role: employeeData.role,
-                dateOfJoining: employeeData.dateOfJoining,
+                dateOfJoining: new Date(employeeData.dateOfJoining),
                 employmentStatus: employeeData.employmentStatus,
                 workLocation: employeeData.workLocation,
                 contractType: employeeData.contractType,
-                teamId: employeeData.teamId ? new mongoose.Types.ObjectId(employeeData.teamId) : undefined,
-                reportsTo: employeeData.reportsTo ? new mongoose.Types.ObjectId(employeeData.reportsTo) : undefined,
-                compensation: employeeData.salary ? {
+            };
+
+            // Handle optional fields with proper ObjectId validation
+            if (employeeData.teamId) {
+                if (mongoose.Types.ObjectId.isValid(employeeData.teamId)) {
+                    employeeDoc.teamId = new Types.ObjectId(employeeData.teamId);
+                } else {
+                    throw new AppError('Invalid teamId format', 400);
+                }
+            }
+
+            if (employeeData.reportsTo) {
+                if (mongoose.Types.ObjectId.isValid(employeeData.reportsTo)) {
+                    employeeDoc.reportsTo = new Types.ObjectId(employeeData.reportsTo);
+                } else {
+                    throw new AppError('Invalid reportsTo format', 400);
+                }
+            }
+
+            // Handle salary if provided
+            if (employeeData.salary) {
+                employeeDoc.compensation = {
                     salary: employeeData.salary,
                     currency: 'USD',
                     effectiveDate: new Date()
-                } : undefined
-            });
+                };
+            }
 
-            await employee.save();
+            // Set default leave balance
+            employeeDoc.leaveBalance = {
+                annual: 30,
+                sick: 10,
+                casual: 5
+            };
 
-            res.status(201).json(employee);
-        } catch (error) {
+            // Create employee with validated data
+            const employee = new Employee(employeeDoc);
+            const savedEmployee = await employee.save();
+
+            // Fetch the complete employee data with populated fields
+            const populatedEmployee = await Employee.findById(savedEmployee._id)
+                .populate<{ userId: IUserProfile }>('userId', '-__v')
+                .populate('teamId', 'name')
+                .populate<{ reportsTo: IEmployee & { userId: IUserProfile } }>('reportsTo', 'userId');
+
+            if (!populatedEmployee) {
+                throw new AppError('Failed to fetch created employee details', 500);
+            }
+
+            // Format the response
+            const response = {
+                id: parseInt(savedEmployee._id.toString().slice(-8), 16),
+                employeeNumber: savedEmployee.employeeNumber,
+                firstName: savedUserProfile.firstName,
+                lastName: savedUserProfile.lastName,
+                email: savedUserProfile.email,
+                jobTitle: savedEmployee.jobTitle,
+                department: savedEmployee.department,
+                role: savedEmployee.role,
+                dateOfJoining: savedEmployee.dateOfJoining,
+                employmentStatus: savedEmployee.employmentStatus,
+                workLocation: savedEmployee.workLocation,
+                contractType: savedEmployee.contractType,
+                team: populatedEmployee.teamId ? {
+                    id: (populatedEmployee.teamId as any)._id,
+                    name: (populatedEmployee.teamId as any).name
+                } : undefined,
+                reportsTo: populatedEmployee.reportsTo ? {
+                    id: populatedEmployee.reportsTo._id,
+                    name: `${populatedEmployee.reportsTo.userId.firstName} ${populatedEmployee.reportsTo.userId.lastName}`
+                } : undefined,
+                compensation: savedEmployee.compensation,
+                leaveBalance: savedEmployee.leaveBalance
+            };
+
+            res.status(201).json(response);
+        } catch (error: unknown) {
             console.error('Create employee error:', error);
+            
+            // Handle specific errors with proper type checking
+            if (error instanceof AppError) {
+                return res.status(error.statusCode).json({ error: error.message });
+            }
+            
+            // Handle MongoDB duplicate key error
+            if (error && typeof error === 'object' && 'code' in error) {
+                const mongoError = error as MongoError;
+                if (mongoError.code === 11000 && mongoError.keyPattern) {
+                    return res.status(400).json({ 
+                        error: 'Email already exists',
+                        field: Object.keys(mongoError.keyPattern)[0]
+                    });
+                }
+            }
+
+            // Handle validation errors
+            if (error && typeof error === 'object' && 'name' in error && error.name === 'ValidationError') {
+                const validationError = error as ValidationError;
+                return res.status(400).json({ 
+                    error: 'Validation Error',
+                    details: Object.values(validationError.errors).map(err => err.message)
+                });
+            }
+
             res.status(500).json({ error: 'Failed to create employee' });
         }
     },

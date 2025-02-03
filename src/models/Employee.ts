@@ -128,7 +128,6 @@ const EmployeeSchema = new Schema<IEmployee>(
 );
 
 // Index for faster queries
-EmployeeSchema.index({ employeeNumber: 1 });
 EmployeeSchema.index({ role: 1 });
 EmployeeSchema.index({ department: 1 });
 EmployeeSchema.index({ reportsTo: 1 });
